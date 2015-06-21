@@ -1,0 +1,76 @@
+---
+title: "regression modeling - motor trend"
+author: "jeffzfw"
+date: "June 20, 2015"
+output: pdf_document
+---
+## Executive Summary
+*Motor Trend* is a magazine about the automobile industry. Looking at a data set of a collection of cars, they are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
+-  "Is an automatic or manual transmission better for MPG"
+-  "Quantify the MPG difference between automatic and manual transmissions"
+We will use regression models and exploratory data analyses to mainly explore how automatic and manual transmissions features affect the MPG feature.  T-test will show  the performance difference between  automatic and manual transmission. Then, we will fit several linear regression models and select the one with highest Adjusted R-squared value.
+## Exploratory Data Analysis  
+```{r}
+library(ggplot2)
+data(mtcars)
+head(mtcars)
+```
+After loading the data set `mtcars`,We like to do some visual explorations.check the [Appendix](#Appendix),the boxplot(fig1) shows the difference between automatic transmisssion and manual transmission seems to be true.
+## Inference
+Let's check the averge MPG for automatic transmissions:
+```{r}
+auto_trans <- subset(mtcars, am == 0)
+mean(auto_trans$mpg)
+```
+Average MPG for manual transmissions:
+```{r}
+man_trans <- subset(mtcars, am == 1)
+mean(man_trans$mpg)
+```
+
+perform a t-test between two groups:
+```{r}
+r1 <-t.test(man_trans$mpg,auto_trans$mpg)
+```
+By the t-test,p-value `r r1$p.value` is less than 5%,and confidence interval `r r1$conf.int[1]` - `r r1$conf.int[2]` doesn't contain 0. so we can say that the manual cars are better than automatic cars.
+But using the transmission alone is not enough to quantify the difference for specific cases. We would like to see linear regression of miles per gallon using the single transmission indepent variable.
+
+```{r}
+amM <- lm(mpg ~ am,data = mtcars)
+amM_sum <- summary(amM)
+```
+
+The p-value 0.000285 shows relation between mpg and transmission is significant.But R-squared `r amM_sum$r.squared` shows the variance explianed is low.
+
+Now, we like to check full model that contains all the variables:
+
+```{r}
+fullM <- lm(mpg ~ .,data = mtcars)
+sf <- summary(fullM)
+```
+This model has R-squared value of `r sf$r.squared`,but the coeffients are not at 0.05 significant level.
+
+Then, we use backward selection to select some statistically significant variables.  
+
+```{r}
+bestM <- step(fullM, trace= 0)
+summary(bestM) 
+```
+So,the model we choose is "mpg ~ wt + qsec + am".All of the coefficients are significant at 0.05 significant level and the R-squared value is 0.8336, which means that the model can explain about 83% of the variance of the MPG variable. 
+
+## Residual analysis and diagnostics
+According to Appendix fig2,the diagnostic plots show the residuals are normally distributed and homoskedastic. 
+
+
+
+## Appendix
+<a name="Appendix"></a>
+fig1 
+```{r}
+boxplot(mpg ~ am, data=mtcars, xlab="Transmission Type(0 = Auto, 1 = Manu)", ylab="Miles per Gallon",main="Automatic versus Manual Transmission MPG")
+```
+fig2
+```{r}
+par(mfrow = c(2, 2))
+plot(bestM)
+```
